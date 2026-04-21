@@ -47,8 +47,8 @@ excalidraw-monorepo/
 
 ## Architecture
 
-- **State Management**: custom `actionManager` (NOT Redux/Zustand/MobX). State updates via `actionManager.dispatch()` only. State type: `AppState` in `packages/excalidraw/types.ts`.
-- **Rendering**: Canvas 2D rendering via custom engine (NOT React DOM for drawing). Pipeline: Scene -> `renderScene()` -> canvas 2D context.
+- **State Management**: custom `actionManager` (NOT Redux/Zustand/MobX). State updates via `actionManager.executeAction(action, source?, value?)` only. State type: `AppState` in `packages/excalidraw/types.ts`.
+- **Rendering**: Canvas 2D rendering via custom engine (NOT React DOM for drawing). No single `renderScene()`; pipeline is split across `renderStaticScene`, `renderInteractiveScene`, and `renderNewElementScene` — see `references/rendering-pipeline.md` for details.
 - **Monorepo**: Yarn workspaces with `@excalidraw/*` package aliases defined in `tsconfig.json`.
 
 ## Conventions

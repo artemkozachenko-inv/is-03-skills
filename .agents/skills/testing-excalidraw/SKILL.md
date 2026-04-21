@@ -32,7 +32,10 @@ or action handlers.
 ## How to write a component test
 
 1. Import the component and render it with `render()` from `@testing-library/react`
-2. Wrap in `<ExcalidrawActionContext.Provider>` if the component calls `actionManager`
+2. If the component requires `actionManager`, use one of these approaches:
+   - Use the test helpers in `packages/excalidraw/tests/helpers/api.ts` and `mocks.ts` (e.g., `createTestApp`, mock factories) — these set up a real `actionManager` instance
+   - Render the full `<Excalidraw />` component via `packages/excalidraw/tests/` test-utils to get a complete app context with a live `actionManager`
+   - For pure presentational components, pass a mocked callback in place of any `actionManager.executeAction` calls
 3. Use `screen.getByRole` / `screen.getByText` — avoid `getByTestId` unless no semantic query works
 4. Assert user-visible behavior, not internal state
 
@@ -76,13 +79,13 @@ describe("clamp", () => {
 
 ```bash
 # Run all tests once
-yarn test:app -- --watch=false
+yarn test:app --run
 
 # Run a single file
-yarn test:app -- --watch=false MyPanel
+yarn test:app --run MyPanel
 
 # Run with coverage
-yarn test:app -- --coverage --watch=false
+yarn test:app --run --coverage
 ```
 
 ## Rules

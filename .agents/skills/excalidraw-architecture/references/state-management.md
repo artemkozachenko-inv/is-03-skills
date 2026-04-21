@@ -33,7 +33,13 @@ User interaction
 ## Rules for state changes
 
 1. Never mutate `AppState` directly — always return a new partial from `action.perform()`
-2. Element mutations use `mutateElement()` from `packages/element/src/mutateElement.ts`
+2. Element mutations use `mutateElement()` from `packages/element/src/mutateElement.ts`.
+   Full signature: `mutateElement(element, elementsMap, updates, options?)`
+   - `element` — the element to mutate (must be `Mutable<ExcalidrawElement>`)
+   - `elementsMap` — **second argument** (`ElementsMap`); pass the current map from `AppState`
+   - `updates` — **third argument** (`ElementUpdate<TElement>`); the fields to apply
+   - `options?` — optional `{ isDragging?, isBindingEnabled?, isMidpointSnappingEnabled? }`
+   > **Common mistake**: passing `updates` as the second argument (old API). Always pass `elementsMap` second.
 3. `commitToHistory: true` in action return marks the change as undoable
 
 ## History / Undo

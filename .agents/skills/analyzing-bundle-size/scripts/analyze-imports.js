@@ -9,31 +9,74 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "../../../..");
 const SEARCH_DIRS = ["packages", "excalidraw-app"];
-const IMPORT_RE = /from\s+['"]([^'"./][^'"]*)['"]/g;
+
+// Static named/default and side-effect imports: `from 'pkg'` and `import 'pkg'`
+const STATIC_IMPORT_RE = /(?:from|import)\s+['"]([^'"./][^'"]*)['"]/g;
+// Dynamic imports: `import('pkg')`
+const DYNAMIC_IMPORT_RE = /import\(\s*['"]([^'"./][^'"]*)['"]\s*\)/g;
+// CommonJS requires: `require('pkg')`
+const REQUIRE_RE = /require\(\s*['"]([^'"./][^'"]*)['"]\s*\)/g;
+
+const SKIP_DIRS = new Set([
+  "node_modules", "dist", ".cache", "build",
+  ".git", "coverage", "out", ".next", "__snapshots__", ".yarn",
+]);
 
 const packageCounts = {};
+const lazyPackages = new Set();
 const fileCounts = [];
+
+function normalizePkg(raw) {
+  return raw.split("/").slice(0, raw.startsWith("@") ? 2 : 1).join("/");
+}
 
 function walk(dir) {
   if (!fs.existsSync(dir)) return;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (["node_modules", "dist", ".cache", "build"].includes(entry.name)) continue;
+      if (SKIP_DIRS.has(entry.name)) continue;
       walk(full);
     } else if (/\.(ts|tsx|js|jsx)$/.test(entry.name)) {
-      const src = fs.readFileSync(full, "utf8");
-      let match;
+      let src;
+      try {
+        src = fs.readFileSync(full, "utf8");
+      } catch (err) {
+        process.stderr.write(`SKIP ${full}: ${err.message}\n`);
+        continue;
+      }
+
       let count = 0;
       const seen = new Set();
-      while ((match = IMPORT_RE.exec(src)) !== null) {
-        const pkg = match[1].split("/").slice(0, match[1].startsWith("@") ? 2 : 1).join("/");
+
+      const recordPkg = (pkg, isLazy = false) => {
         if (!seen.has(pkg)) {
           seen.add(pkg);
           packageCounts[pkg] = (packageCounts[pkg] || 0) + 1;
         }
+        if (isLazy) lazyPackages.add(pkg);
         count++;
+      };
+
+      try {
+        let match;
+        STATIC_IMPORT_RE.lastIndex = 0;
+        while ((match = STATIC_IMPORT_RE.exec(src)) !== null) {
+          recordPkg(normalizePkg(match[1]));
+        }
+        DYNAMIC_IMPORT_RE.lastIndex = 0;
+        while ((match = DYNAMIC_IMPORT_RE.exec(src)) !== null) {
+          recordPkg(normalizePkg(match[1]), true);
+        }
+        REQUIRE_RE.lastIndex = 0;
+        while ((match = REQUIRE_RE.exec(src)) !== null) {
+          recordPkg(normalizePkg(match[1]));
+        }
+      } catch (err) {
+        process.stderr.write(`SKIP ${full}: ${err.message}\n`);
+        continue;
       }
+
       if (count > 0) {
         fileCounts.push({ file: path.relative(ROOT, full), count });
       }
@@ -51,16 +94,21 @@ const KNOWN_SIZES = {
   "rxjs": 40,
   "core-js": 90,
   "react-dom": 42,
+  "roughjs": 28,
   "framer-motion": 55,
   "three": 580,
   "d3": 80,
 };
 
+// Packages excluded from the heavy-dependency warning (render-critical or unavoidable).
+const HEAVY_WARNING_IGNORE = new Set(["react-dom"]);
+
 console.log("\n=== TOP 15 MOST-IMPORTED PACKAGES ===");
 const sorted = Object.entries(packageCounts).sort((a, b) => b[1] - a[1]).slice(0, 15);
 for (const [pkg, count] of sorted) {
   const sizeNote = KNOWN_SIZES[pkg] ? ` (~${KNOWN_SIZES[pkg]}KB gzip)` : "";
-  console.log(`  ${count.toString().padStart(4)} files  ${pkg}${sizeNote}`);
+  const lazyNote = lazyPackages.has(pkg) ? " (lazy)" : "";
+  console.log(`  ${count.toString().padStart(4)} files  ${pkg}${sizeNote}${lazyNote}`);
 }
 
 console.log("\n=== TOP 10 FILES WITH MOST IMPORTS ===");
@@ -72,7 +120,7 @@ for (const { file, count } of topFiles) {
 console.log("\n=== POTENTIALLY HEAVY DEPENDENCIES DETECTED ===");
 let found = false;
 for (const [pkg, size] of Object.entries(KNOWN_SIZES)) {
-  if (packageCounts[pkg]) {
+  if (packageCounts[pkg] && !HEAVY_WARNING_IGNORE.has(pkg)) {
     console.log(`  WARNING: "${pkg}" (~${size}KB gzip) used in ${packageCounts[pkg]} file(s)`);
     found = true;
   }

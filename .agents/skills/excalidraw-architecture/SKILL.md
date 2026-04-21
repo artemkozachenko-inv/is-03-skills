@@ -21,7 +21,7 @@ Load references on demand based on the user's question:
 1. Identify which subsystem the question belongs to
 2. Load the relevant reference document
 3. Cite specific file paths and function names from the reference
-4. When the reference is insufficient, use Grep/Read to look deeper — then update the reference if you find something new and important
+4. When the reference is insufficient, search the codebase and read source files to look deeper — then update the reference if you find something new and important
 
 ## Making cross-cutting changes
 

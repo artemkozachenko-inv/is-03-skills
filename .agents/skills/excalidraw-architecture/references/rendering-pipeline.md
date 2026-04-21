@@ -26,8 +26,13 @@ There is no single `renderScene.ts`; the pipeline is split across the modules ab
 ## Coordinate system
 
 - Elements use **scene coordinates** (world space)
-- Viewport transform: `scrollX`, `scrollY`, `zoom` stored in `AppState`
-- Convert: `screenX = (sceneX + scrollX) * zoom` (see renderer helpers for exact usage)
+- Viewport transform: `scrollX`, `scrollY`, `zoom` (a `{ value: NormalizedZoomValue }` object) stored in `AppState`, plus `offsetLeft`/`offsetTop` for the canvas position within the page
+- Canonical helpers in `packages/common/src/utils.ts` (exported via `@excalidraw/common`):
+  - `sceneCoordsToViewportCoords({ sceneX, sceneY }, { zoom, scrollX, scrollY, offsetLeft, offsetTop })`
+    → `x = (sceneX + scrollX) * zoom.value + offsetLeft`
+  - `viewportCoordsToSceneCoords({ clientX, clientY }, { zoom, scrollX, scrollY, offsetLeft, offsetTop })`
+    → `x = (clientX - offsetLeft) / zoom.value - scrollX`
+- Always use these helpers rather than inlining the formula, to stay in sync with `AppState`
 
 ## Performance notes
 
