@@ -63,8 +63,36 @@ excalidraw-monorepo/
 
 ## Skills
 
-<!-- Add your Agent Skills here during the workshop -->
+Available skills in `.agents/skills/`:
 
-Available skills in this project:
+| Skill | Type | Purpose |
+| ------- | ------ | --------- |
+| `creating-excalidraw-components` | Simple | Scaffold React components following Excalidraw naming, styling, and state-management conventions |
+| `analyzing-bundle-size` | With scripts | Run `scripts/analyze-imports.js` to detect heavy dependencies and import patterns; recommend tree-shaking and lazy-load opportunities |
+| `excalidraw-architecture` | With references | Answer deep architecture questions (rendering pipeline, state management, package boundaries) using pre-built reference docs loaded on demand |
+| `testing-excalidraw` | Simple | Write Vitest + React Testing Library tests following project conventions (correct runner API, colocated files, userEvent, direct source imports) |
 
-- **creating-excalidraw-components** (`.agents/skills/`) — Create React components following Excalidraw's patterns and conventions
+### Skill details
+
+**creating-excalidraw-components**
+Guides creation of new UI components in `packages/excalidraw/components/`. Enforces named exports, `{Name}Props` types, SCSS modules, and `actionManager.executeAction()` for actions.
+
+**analyzing-bundle-size**
+Runs `node .agents/skills/analyzing-bundle-size/scripts/analyze-imports.js` to scan all `.ts/.tsx` source files and produce a ranked report of package import frequency and known-heavy dependency warnings.
+
+**excalidraw-architecture**
+Loads reference documents from `references/` on demand:
+
+- `rendering-pipeline.md` — Canvas 2D rendering stages, coordinate system, roughjs
+- `state-management.md` — actionManager, AppState, undo/history
+- `package-structure.md` — monorepo boundaries, build system, import rules
+
+**testing-excalidraw**
+Guides writing tests for components and utilities in the Excalidraw monorepo. Specifies correct test runner (`vi.*` not `jest.*`), file placement (colocated, not `__tests__/`), import paths (source files, not public index), and interaction helpers (`userEvent` over `fireEvent`).
+
+### Skill test results
+
+See `docs/skill-testing/` for documented test scenarios (with/without skill) and conclusions:
+
+- `docs/skill-testing/analyzing-bundle-size.md`
+- `docs/skill-testing/testing-excalidraw.md`
