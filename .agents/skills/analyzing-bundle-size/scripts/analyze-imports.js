@@ -26,10 +26,27 @@ const packageCounts = {};
 const lazyPackages = new Set();
 const fileCounts = [];
 
+/**
+ * Normalize a raw import specifier to its top-level package name.
+ * Scoped packages (e.g. "@scope/pkg/deep") are reduced to "@scope/pkg";
+ * all others are reduced to the first path segment.
+ *
+ * @param {string} raw - The raw import specifier extracted from source code.
+ * @returns {string} The normalized package name.
+ */
 function normalizePkg(raw) {
   return raw.split("/").slice(0, raw.startsWith("@") ? 2 : 1).join("/");
 }
 
+/**
+ * Recursively walk a directory tree and collect import statistics for each
+ * TypeScript/JavaScript source file found.
+ * Results are accumulated into the module-level `packageCounts`, `lazyPackages`,
+ * and `fileCounts` variables.
+ *
+ * @param {string} dir - Absolute path to the directory to walk.
+ * @returns {void}
+ */
 function walk(dir) {
   if (!fs.existsSync(dir)) return;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -49,6 +66,15 @@ function walk(dir) {
       let count = 0;
       const seen = new Set();
 
+      /**
+       * Record a single package import hit for the current file.
+       * Deduplicates per-file counts and marks the package as lazily loaded
+       * when applicable.
+       *
+       * @param {string} pkg - Normalized package name to record.
+       * @param {boolean} [isLazy=false] - Whether the import is dynamic (lazy).
+       * @returns {void}
+       */
       const recordPkg = (pkg, isLazy = false) => {
         if (!seen.has(pkg)) {
           seen.add(pkg);
